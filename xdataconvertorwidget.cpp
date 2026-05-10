@@ -21,6 +21,17 @@
 #include "xdataconvertorwidget.h"
 #include "ui_xdataconvertorwidget.h"
 
+namespace {
+void deleteTempFile(XDataConvertor::DATA *pData)
+{
+    if (pData && pData->pTmpFile) {
+        delete pData->pTmpFile;
+        pData->pTmpFile = nullptr;
+        pData->bValid = false;
+    }
+}
+}  // namespace
+
 XDataConvertorWidget::XDataConvertorWidget(QWidget *pParent) : XShortcutsWidget(pParent), ui(new Ui::XDataConvertorWidget)
 {
     ui->setupUi(this);
@@ -76,6 +87,12 @@ XDataConvertorWidget::XDataConvertorWidget(QWidget *pParent) : XShortcutsWidget(
 
 XDataConvertorWidget::~XDataConvertorWidget()
 {
+    QMap<CMETHOD, XDataConvertor::DATA>::iterator it = m_mapData.begin();
+    while (it != m_mapData.end()) {
+        deleteTempFile(&it.value());
+        ++it;
+    }
+
     delete ui;
 }
 
@@ -163,12 +180,13 @@ void XDataConvertorWidget::process(CMETHOD method, XDataConvertor::CMETHOD metho
     dcp.start();
 
     if (dcp.showDialogDelay() == QDialog::Accepted) {
-        if (m_mapData[method].pTmpFile) {
-            delete m_mapData[method].pTmpFile;
-        }
+        deleteTempFile(&m_mapData[method]);
 
         m_mapData[method] = _data;
+        _data.pTmpFile = nullptr;
     }
+
+    deleteTempFile(&_data);
 
     showMethod(method);
 }
